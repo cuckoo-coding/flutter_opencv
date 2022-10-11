@@ -1,7 +1,3 @@
-#
-# To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint opencv_4.podspec` to validate before publishing.
-#
 Pod::Spec.new do |s|
   s.name             = 'flutter_opencv'
   s.version          = '0.0.1'
@@ -9,9 +5,9 @@ Pod::Spec.new do |s|
   s.description      = <<-DESC
   A flutter package project which contains a collection of OpenCV modules.
                        DESC
-  s.homepage         = ''
+  s.homepage         = 'https://github.com/cuckoo-coding/flutter_opencv'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'uie79066' => 'vasyl.shponarskyi@gmail.com' }
+  s.author           = { 'vasyl-sw14' => 'vasyl.shponarskyi@gmail.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.public_header_files = 'Classes/**/*.h'

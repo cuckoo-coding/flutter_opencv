@@ -8,7 +8,7 @@
     
 }
 
-FlutterStandardTypedData * medianBlurB(FlutterStandardTypedData * data, int kernelSize){
+FlutterStandardTypedData * medianBlur(FlutterStandardTypedData * data, int kernelSize){
     
     CGColorSpaceRef colorSpace;
     const char * suffix;

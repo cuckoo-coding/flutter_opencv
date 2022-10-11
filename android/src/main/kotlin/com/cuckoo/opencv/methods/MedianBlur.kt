@@ -1,4 +1,4 @@
-package com.fwh.opencv.methods.miscellaneous
+package com.cuckoo.opencv.methods
 
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte
@@ -8,26 +8,23 @@ import java.io.FileInputStream
 import java.io.InputStream
 import io.flutter.plugin.common.MethodChannel
 
-class Threshold {
+class MedianBlur {
     companion object{
-        fun process(data: ByteArray, thresholdValue: Double, maxThresholdValue: Double, thresholdType: Int, result: MethodChannel.Result) {
-            result.success(threshold(data, thresholdValue, maxThresholdValue, thresholdType))
+
+        fun process(data: ByteArray, kernelSize: Int, result: MethodChannel.Result) {
+            result.success(medianBlur(data, kernelSize))
         }
 
-        //Module: Miscellaneous Image Transformations
-        private fun threshold(data: ByteArray, thresholdValue: Double, maxThresholdValue: Double, thresholdType: Int): ByteArray? {
+        //Module: Image Filtering
+        private fun medianBlur(data: ByteArray, kernelSize: Int): ByteArray? {
 
             try {
                 var byteArray = ByteArray(0)
-                val srcGray = Mat()
                 val dst = Mat()
                 // Decode image from input byte array
                 val src = Imgcodecs.imdecode(MatOfByte(*data), Imgcodecs.IMREAD_UNCHANGED)
                 // Convert the image to Gray
-                Imgproc.cvtColor(src, srcGray, Imgproc.COLOR_BGR2GRAY)
-
-                // Thresholding
-                Imgproc.threshold(srcGray, dst, thresholdValue, maxThresholdValue, thresholdType)
+                Imgproc.medianBlur(src, dst, kernelSize)
 
                 // instantiating an empty MatOfByte class
                 val matOfByte = MatOfByte()
@@ -39,7 +36,6 @@ class Threshold {
                 println("OpenCV Error: $e")
                 return data
             }
-
         }
     }
 }

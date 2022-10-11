@@ -1,4 +1,4 @@
-group 'com.fwh.opencv'
+group 'com.cuckoo.opencv'
 version '1.0-SNAPSHOT'
 
 buildscript {

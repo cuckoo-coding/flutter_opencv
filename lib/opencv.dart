@@ -1,18 +1,9 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_opencv/methods/colormaps/applycolormap.dart';
-import 'package:flutter_opencv/methods/colorspace/cvt_color.dart';
-import 'package:flutter_opencv/methods/imagefilter/bilateral_filter.dart';
-import 'package:flutter_opencv/methods/imagefilter/blur.dart';
-import 'package:flutter_opencv/methods/miscellaneous/absolute_difference.dart';
-import 'package:flutter_opencv/methods/miscellaneous/bitwise.dart';
-import 'package:flutter_opencv/methods/miscellaneous/connected_component.dart';
-import 'package:flutter_opencv/methods/miscellaneous/distancetransform.dart';
-import 'package:flutter_opencv/methods/miscellaneous/threshold.dart';
+import 'package:flutter_opencv/utils.dart';
 
-class CV {
+class OpenCV {
   static const int BORDER_CONSTANT = 0,
       BORDER_REPLICATE = 1,
       BORDER_REFLECT = 2,
@@ -22,17 +13,6 @@ class CV {
       BORDER_REFLECT101 = BORDER_REFLECT_101,
       BORDER_DEFAULT = BORDER_REFLECT_101,
       BORDER_ISOLATED = 16;
-
-  static const int MORPH_ERODE = 0,
-      MORPH_DILATE = 1,
-      MORPH_OPEN = 2,
-      MORPH_CLOSE = 3,
-      MORPH_GRADIENT = 4,
-      MORPH_TOPHAT = 5,
-      MORPH_BLACKHAT = 6,
-      MORPH_HITMISS = 7;
-
-  static const int CV_GAUSSIAN_5x5 = 7, CV_SCHARR = -1, CV_MAX_SOBEL_KSIZE = 7;
 
   static const int COLOR_BGR2BGRA = 0,
       COLOR_RGB2RGBA = COLOR_BGR2BGRA,
@@ -273,61 +253,14 @@ class CV {
       THRESH_OTSU = 8,
       THRESH_TRIANGLE = 16;
 
-  static const int DIST_USER = -1,
-      DIST_L1 = 1,
-      DIST_L2 = 2,
-      DIST_C = 3,
-      DIST_L12 = 4,
-      DIST_FAIR = 5,
-      DIST_WELSCH = 6,
-      DIST_HUBER = 7;
-
   static const int ADAPTIVE_THRESH_MEAN_C = 0, ADAPTIVE_THRESH_GAUSSIAN_C = 1;
 
   static const platform = const MethodChannel('opencv');
 
-  static Future<Uint8List?> bilateralFilter({
-    required Uint8List image,
-    required int diameter,
-    required int sigmaColor,
-    required int sigmaSpace,
-    required int borderType,
-  }) async {
-    final Uint8List? result = await BilateralFilter.bilateralFilter(
-      image: image,
-      diameter: diameter,
-      sigmaColor: sigmaColor,
-      sigmaSpace: sigmaSpace,
-      borderType: borderType,
-    );
-
-    return result;
-  }
-
-  static Future<Uint8List?> blur({
-    required Uint8List image,
-    required List<double> kernelSize,
-    required List<double> anchorPoint,
-    required int borderType,
-  }) async {
-    final Uint8List? result = await Blur.blur(
-      image: image,
-      kernelSize: kernelSize,
-      anchorPoint: anchorPoint,
-      borderType: borderType,
-    );
-
-    return result;
-  }
-
-  static Future<Uint8List?> medianBlur({
-    required Uint8List image,
-    required int kernelSize,
-  }) async {
-    final Uint8List? result = await Blur.medianBlur(
-      image: image,
-      kernelSize: kernelSize,
-    );
+  static Future<Uint8List?> absdiff(
+      {required Uint8List image1, required Uint8List image2}) async {
+    Uint8List? result = await platform
+        .invokeMethod('absdiff', {'image1': image1, 'image2': image2});
 
     return result;
   }
@@ -340,14 +273,122 @@ class CV {
     required int blockSize,
     required double constantValue,
   }) async {
-    final Uint8List? result = await Threshold.adaptiveThreshold(
-      image: image,
-      maxValue: maxValue,
-      adaptiveMethod: adaptiveMethod,
-      thresholdType: thresholdType,
-      blockSize: blockSize,
-      constantValue: constantValue,
+    int adaptiveMethodTemp = (adaptiveMethod > 1)
+        ? 1
+        : (adaptiveMethod < 0)
+            ? 0
+            : adaptiveMethod;
+
+    int thresholdTypeTemp = (thresholdType > 1)
+        ? 1
+        : (thresholdType < 0)
+            ? 0
+            : thresholdType;
+
+    Uint8List? result = await platform.invokeMethod('adaptiveThreshold', {
+      "data": image,
+      'maxValue': maxValue,
+      'adaptiveMethod': adaptiveMethodTemp,
+      'thresholdType': thresholdTypeTemp,
+      'blockSize': blockSize,
+      'constantValue': constantValue
+    });
+
+    return result;
+  }
+
+  static Future<Uint8List?> applyColorMap({
+    required Uint8List image,
+    required int colorMap,
+  }) async {
+    int colorMapTemp = (colorMap <= 0)
+        ? 0
+        : (colorMap > 12)
+            ? 12
+            : colorMap;
+
+    Uint8List? result = await platform.invokeMethod('applyColorMap', {
+      "data": image,
+      'colorMap': colorMapTemp,
+    });
+
+    return result;
+  }
+
+  static Future<Uint8List?> bilateralFilter({
+    required Uint8List image,
+    required int diameter,
+    required int sigmaColor,
+    required int sigmaSpace,
+    required int borderType,
+  }) async {
+    int diameterTemp = (diameter >= 0)
+        ? (diameter == 0)
+            ? 1
+            : diameter
+        : -1 * diameter;
+    int borderTypeTemp = Utils.verifyBorderType(borderType);
+
+    Uint8List? result = await platform.invokeMethod('bilateralFilter', {
+      "data": image,
+      "diameter": diameterTemp,
+      "sigmaColor": sigmaColor,
+      "sigmaSpace": sigmaSpace,
+      "borderType": borderTypeTemp,
+    });
+
+    return result;
+  }
+
+  static Future<Uint8List?> bitwiseOr(
+      {required Uint8List image1, required Uint8List image2}) async {
+    Uint8List? result = await platform
+        .invokeMethod('bitwiseOr', {'image1': image1, 'image2': image2});
+
+    return result;
+  }
+
+  static Future<Uint8List?> blur({
+    required Uint8List image,
+    required List<double> kernelSize,
+    required List<double> anchorPoint,
+    required int borderType,
+  }) async {
+    int borderTypeTemp = Utils.verifyBorderType(borderType);
+    List<double> kernelSizeTemp = Utils.verifyKernelSize(kernelSize);
+
+    Uint8List? result = await platform.invokeMethod(
+      'blur',
+      {
+        "data": image,
+        "kernelSize": kernelSizeTemp,
+        "anchorPoint": anchorPoint,
+        "borderType": borderTypeTemp,
+      },
     );
+
+    return result;
+  }
+
+  static Future<List<Uint8List?>> connectedComponentsWithStats(
+      {required Uint8List image,
+      required int connectivity,
+      required int ltype}) async {
+    List<Object?> result = await platform.invokeMethod(
+        'connectedComponentsWithStats',
+        {"data": image, 'connectivity': connectivity, 'ltype': ltype});
+
+    return result.map((obj) => obj as Uint8List?).toList();
+  }
+
+  static Future<Uint8List?> cvtColor({
+    required Uint8List image,
+    required int outputType,
+  }) async {
+    Uint8List? result = await platform.invokeMethod('cvtColor', {
+      "data": image,
+      'outputType': outputType,
+    });
 
     return result;
   }
@@ -357,8 +398,38 @@ class CV {
     required int distanceType,
     required int maskSize,
   }) async {
-    final Uint8List? result = await DistanceTransform.distanceTransform(
-        image: image, distanceType: distanceType, maskSize: maskSize);
+    Uint8List? result = await platform.invokeMethod('distanceTransform',
+        {"data": image, 'distanceType': distanceType, 'maskSize': maskSize});
+
+    return result;
+  }
+
+  static Future<Uint8List?> medianBlur({
+    required Uint8List image,
+    required int kernelSize,
+  }) async {
+    int kernelSizeTemp = (kernelSize <= 0) ? 1 : kernelSize;
+
+    Uint8List? result = await platform.invokeMethod(
+      'medianBlur',
+      {
+        "data": image,
+        'kernelSize': kernelSizeTemp,
+      },
+    );
+
+    return result;
+  }
+
+  static Future<Uint8List?> objectDetection(
+      {required Uint8List image,
+      required String cascadePath,
+      int minNeighbors = 4}) async {
+    final Uint8List? result = await platform.invokeMethod('objectDetection', {
+      'data': image,
+      'cascadePath': cascadePath,
+      'minNeighbors': minNeighbors
+    });
 
     return result;
   }
@@ -369,63 +440,12 @@ class CV {
     required double maxThresholdValue,
     required int thresholdType,
   }) async {
-    final Uint8List? result = await Threshold.threshold(
-      image: image,
-      thresholdValue: thresholdValue,
-      maxThresholdValue: maxThresholdValue,
-      thresholdType: thresholdType,
-    );
-
-    return result;
-  }
-
-  static Future<Uint8List?> cvtColor({
-    required Uint8List image,
-    required int outputType,
-  }) async {
-    final Uint8List? result = await CvtColor.cvtColor(
-      image: image,
-      outputType: outputType,
-    );
-
-    return result;
-  }
-
-  static Future<Uint8List?> applyColorMap({
-    required Uint8List image,
-    required int colorMap,
-  }) async {
-    final Uint8List? result = await ApplyColorMap.applyColorMap(
-      image: image,
-      colorMap: colorMap,
-    );
-
-    return result;
-  }
-
-  static Future<Uint8List?> absdiff(
-      {required Uint8List image1, required Uint8List image2}) async {
-    final Uint8List? result =
-        await AbsoluteDifference.absdiff(image1: image1, image2: image2);
-
-    return result;
-  }
-
-  static Future<Uint8List?> bitwiseOr(
-      {required Uint8List image1, required Uint8List image2}) async {
-    final Uint8List? result =
-        await Bitwise.bitwiseOr(image1: image1, image2: image2);
-
-    return result;
-  }
-
-  static Future<List<Uint8List?>> connectedComponentsWithStats(
-      {required Uint8List image,
-      required int connectivity,
-      required int ltype}) async {
-    final List<Uint8List?> result =
-        await ConnectedComponent.connectedComponentsWithStats(
-            image: image, connectivity: connectivity, ltype: ltype);
+    Uint8List? result = await platform.invokeMethod('threshold', {
+      'data': image,
+      'thresholdValue': thresholdValue,
+      'maxThresholdValue': maxThresholdValue,
+      'thresholdType': thresholdType
+    });
 
     return result;
   }

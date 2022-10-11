@@ -1,4 +1,4 @@
-package com.fwh.opencv.methods.imagefilter
+package com.cuckoo.opencv.methods
 
 import org.opencv.core.Mat
 import org.opencv.core.MatOfByte

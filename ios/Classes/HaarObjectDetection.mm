@@ -1,27 +1,25 @@
-#import "Blur.h"
+#import "HaarObjectDetection.h"
 
-@implementation Blur
+@implementation HaarObjectDetection
 
-+ (void)process:(FlutterStandardTypedData *)data kernelSize: (double[]) kernelSizeInt anchorPoint:(double[]) anchorPointInt borderType: (int) borderType result: (FlutterResult) result{
-    
-    result(blur(data, kernelSizeInt, anchorPointInt, borderType));
-    
-}
++ (void)process:(FlutterStandardTypedData *)data cascadePath:(NSString*)cascadePath minNeighbors:(int)minNeighbors result:(FlutterResult)result {
+    cv::CascadeClassifier face_cascade;
 
+    std::string stdPath = std::string([cascadePath UTF8String]);
 
-FlutterStandardTypedData * blur(FlutterStandardTypedData * data, double kernelSize[], double anchorPoint[], int borderType) {
-    
+    cv::String path = cv::String(stdPath);
+
+    face_cascade.load(path);
+
     CGColorSpaceRef colorSpace;
     const char * suffix;
-    std::vector<uint8_t> fileData;  
-    FlutterStandardTypedData* result; 
     cv::Mat src;
-    
+    FlutterStandardTypedData* res;
     
     UInt8* valor1 = (UInt8*) data.data.bytes;
     
     int size = data.elementCount;
-
+    
     CFDataRef file_data_ref = CFDataCreateWithBytesNoCopy(NULL, valor1,
                                                           size,
                                                           kCFAllocatorNull);
@@ -65,32 +63,38 @@ FlutterStandardTypedData * blur(FlutterStandardTypedData * data, double kernelSi
     } else {
         src = cv::Mat();
     }
-
+    
     
     if(src.empty()){
-        result = [FlutterStandardTypedData typedDataWithBytes: data.data];
+        res = [FlutterStandardTypedData typedDataWithBytes: data.data];
     } else {
-        cv::Mat dst;
-        cv::Size size = cv::Size(kernelSize[0], kernelSize[1]);
-        cv::Point anchorPointP = cv::Point(anchorPoint[0], anchorPoint[1]);
-        cv::blur(src, dst, size, anchorPointP, borderType);
+        cv::Mat srcGray;
+        cv::cvtColor(src, srcGray, cv::COLOR_BGR2GRAY);
+        std::vector<cv::Rect> faces;
+        face_cascade.detectMultiScale(srcGray, faces, 1.1, minNeighbors);
+
+        NSLog(@"%d faces were detected.", faces.size());
+
+        for (int i = 0;i < faces.size();i++) {
+            cv::rectangle(src, cv::Point(faces[i].x, faces[i].y), cv::Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), cv::Scalar( 255, 0, 0 ), 5);
+        }
+
+        NSData *data = [NSData dataWithBytes:src.data length:src.elemSize()*src.total()];
         
-        NSData *data = [NSData dataWithBytes:dst.data length:dst.elemSize()*dst.total()];
-        
-        if (dst.elemSize() == 1) {
+        if (src.elemSize() == 1) {
               colorSpace = CGColorSpaceCreateDeviceGray();
           } else {
               colorSpace = CGColorSpaceCreateDeviceRGB();
           }
           CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)data);
           // Creating CGImage from cv::Mat
-          CGImageRef imageRef = CGImageCreate(dst.cols,                                 //width
-                                             dst.rows,                                 //height
+          CGImageRef imageRef = CGImageCreate(src.cols,                                 //width
+                                             src.rows,                                 //height
                                              8,                                          //bits per component
-                                             8 * dst.elemSize(),                       //bits per pixel
-                                             dst.step[0],                            //bytesPerRow
+                                             8 * src.elemSize(),                       //bits per pixel
+                                             src.step[0],                            //bytesPerRow
                                              colorSpace,                                 //colorspace
-                                             kCGImageAlphaNone|kCGBitmapByteOrderDefault,// bitmap info
+                                             kCGImageAlphaNoneSkipLast|kCGBitmapByteOrderDefault,// bitmap info
                                              provider,                                   //CGDataProviderRef
                                              NULL,                                       //decode
                                              false,                                      //should interpolate
@@ -110,11 +114,12 @@ FlutterStandardTypedData * blur(FlutterStandardTypedData * data, double kernelSi
                    (strcasecmp(suffix, ".jpeg") == 0)) {
             imgConvert = UIImageJPEGRepresentation(finalImage, 1);
         }
-        
-        result = [FlutterStandardTypedData typedDataWithBytes: imgConvert];
+
+        res = [FlutterStandardTypedData typedDataWithBytes: imgConvert];
+
     }
-    
-    return result;
+
+    result(res);
 }
 
 @end

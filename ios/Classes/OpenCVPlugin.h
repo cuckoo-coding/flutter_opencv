@@ -4,5 +4,5 @@
 #endif
 #import <Flutter/Flutter.h>
 
-@interface Opencv4Plugin : NSObject <FlutterPlugin>
+@interface OpenCVPlugin : NSObject <FlutterPlugin>
 @end
